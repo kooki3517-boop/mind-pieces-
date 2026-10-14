@@ -46,7 +46,7 @@ function sfx(a){if(soundOn){a.currentTime=0;a.play().catch(()=>{})}}function cli
 function startBgm(){
   if(!soundOn||document.hidden)return;
   bgm.volume=.32;
-  rail.volume=.72;
+  rail.volume=.38;
   // Start both audio elements directly inside the same user gesture.
   // Never gate rail playback on the BGM promise (mobile browser restriction).
   const musicPlay=bgm.play();
