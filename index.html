@@ -35,7 +35,7 @@ body{background:#1c1c26;color:#292633}
 .popbox .handover-subtitle{font-size:14px;line-height:1.5;margin:12px 0 7px}
 .popbox .paw-stamp{display:block;width:49px;height:49px;margin:2px auto 14px;transform:rotate(-9deg);opacity:.84;filter:contrast(.92)}
 </style></head><body><main class="app"><header class="top">✦ ༺ 마음 조각 분실물 센터 ༻ ✦<button id="sound" class="sound">♪</button></header>
-<section id="home"><div class="scene"></div><div class="panel"><h2>오늘, 무엇을 물어볼까요?</h2><textarea id="question" rows="3" placeholder="질문은 적어도 되고, 비워도 괜찮아요."></textarea><div id="deck" class="deck">☾</div><button id="draw" class="btn">카드 열기</button></div></section>
+<section id="home"><div class="scene"></div><div class="panel"><h2>카드를 뒤집어 소유자를 확인합니다..</h2><textarea id="question" rows="3" placeholder="질문은 적어도 되고, 비워도 괜찮아요."></textarea><div id="deck" class="deck">☾</div><button id="draw" class="btn">카드 열기</button></div></section>
 <section id="result" class="hidden"><div class="panel"><div class="deck cardface" id="face"><img id="cardimg" alt="뽑은 타로 카드"></div><h2 id="ct" class="cardtitle"></h2><div id="or" class="orient"></div><p id="meaning"></p><hr><p><b>이 카드를 보고 어떤 생각이 들었나요?</b></p><textarea id="reflection" rows="8" placeholder="마음에 떠오른 걸 자유롭게 적어주세요."></textarea><button id="save" class="btn">마음 찾아가기</button><button id="again" class="btn">한 장 더 뽑기</button></div></section>
 <section id="records" class="hidden records"><div class="panel"><h2>마음 기록</h2><div id="list"></div><hr><div class="backup"><button id="export" class="btn">기록 백업하기</button><button id="importBtn" class="btn">기록 불러오기</button><input id="importFile" class="file" type="file" accept="application/json"></div><p class="tiny">백업 파일에는 질문·카드·정/역방향·기록·날짜가 함께 저장돼요.</p></div></section>
 <nav class="nav"><button id="recordsNav">▣ 기록</button><button id="homeNav">⌂ 홈</button></nav></main>
@@ -46,7 +46,7 @@ function sfx(a){if(soundOn){a.currentTime=0;a.play().catch(()=>{})}}function cli
 function startBgm(){
   if(!soundOn||document.hidden)return;
   bgm.volume=.32;
-  rail.volume=.38;
+  rail.volume=.13;
   // Start both audio elements directly inside the same user gesture.
   // Never gate rail playback on the BGM promise (mobile browser restriction).
   const musicPlay=bgm.play();
