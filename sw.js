@@ -1,4 +1,4 @@
-const C='mind-fragment-v20261014-natural-fur-3';
+const C='mind-fragment-v20261014-mouth-pixel-4';
 const ASSETS=['./','./index.html','./cards.json','./bgm.wav','./rail-ambience.wav','./click.wav','./icon-192.png','./icon-512.png','./kami-lost-found.webp','./manifest.webmanifest'];
 self.addEventListener('install',event=>{event.waitUntil(caches.open(C).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
 self.addEventListener('activate',event=>{event.waitUntil(Promise.all([caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==C).map(key=>caches.delete(key)))),self.clients.claim()]));});
