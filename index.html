@@ -49,9 +49,9 @@ body{background:#1c1c26;color:#292633}
 <section id="result" class="hidden"><div class="panel"><div class="deck cardface" id="face"><img id="cardimg" alt="뽑은 타로 카드"></div><h2 id="ct" class="cardtitle"></h2><div id="or" class="orient"></div><p id="meaning"></p><hr><p><b>이 카드를 보고 어떤 생각이 들었나요?</b></p><textarea id="reflection" rows="8" placeholder="마음에 떠오른 걸 자유롭게 적어주세요."></textarea><button id="save" class="btn">마음 찾아가기</button><button id="again" class="btn">한 장 더 뽑기</button></div></section>
 <section id="records" class="hidden records"><div class="panel"><h2>마음 기록</h2><div id="list"></div><hr><div class="backup"><button id="export" class="btn">기록 백업하기</button><button id="importBtn" class="btn">기록 불러오기</button><input id="importFile" class="file" type="file" accept="application/json"></div><p class="tiny">백업 파일에는 질문·카드·정/역방향·기록·날짜가 함께 저장돼요.</p></div></section>
 <nav class="nav"><button id="recordsNav">▣ 기록</button><button id="homeNav">⌂ 홈</button></nav></main>
-<audio id="bgm" src="bgm.wav" loop></audio><audio id="rail" src="rail-ambience.wav" loop preload="auto"></audio><audio id="click" src="click.wav"></audio>
+<audio id="click" src="click.wav" preload="auto"></audio>
 <script>
-let cards=[],current=null,soundOn=true,recentDraws=[];const $=s=>document.querySelector(s),bgm=$('#bgm'),rail=$('#rail'),click=$('#click');fetch('cards.json?v=20261014-soundfix2').then(r=>r.json()).then(x=>cards=x);if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+let cards=[],current=null,soundOn=true,recentDraws=[];const $=s=>document.querySelector(s),click=$('#click');fetch('cards.json?v=20261015-web-audio').then(r=>r.json()).then(x=>cards=x);if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
 let lastClickAt=0;
 function clicky(){
   if(!soundOn)return;
@@ -61,25 +61,42 @@ function clicky(){
   click.pause();click.currentTime=0;
   click.play().catch(()=>{});
 }
-// A single click event is the only button sound path, including popup buttons.
-document.addEventListener('click',e=>{if(e.target.closest('button'))clicky()});let bgmUnlocked=false;
+document.addEventListener('click',e=>{if(e.target.closest('button'))clicky()});
+// Play ambient sound through Web Audio rather than HTML media elements.
+// This reduces media-session exposure on some Android browsers, but the OS can still show controls.
+let audioCtx=null, ambientBuffers=null, ambientSources=[], ambientLoading=null, bgmUnlocked=false;
+function loadAmbient(){
+  if(ambientLoading)return ambientLoading;
+  ambientLoading=Promise.all(['bgm.wav','rail-ambience.wav'].map(async url=>{
+    const r=await fetch(url);if(!r.ok)throw Error('audio fetch failed');
+    return audioCtx.decodeAudioData(await r.arrayBuffer());
+  })).then(b=>{ambientBuffers=b;return b}).catch(()=>{ambientLoading=null;return null});
+  return ambientLoading;
+}
+function clearAmbient(){for(const node of ambientSources){try{node.stop()}catch(e){}try{node.disconnect()}catch(e){}}ambientSources=[]}
+function beginAmbient(){
+  if(!ambientBuffers||!audioCtx||!soundOn||document.hidden||ambientSources.length)return;
+  ambientBuffers.forEach((buffer,i)=>{
+    const source=audioCtx.createBufferSource(),gain=audioCtx.createGain();
+    source.buffer=buffer;source.loop=true;gain.gain.value=i===0?.32:.13;
+    source.connect(gain);gain.connect(audioCtx.destination);source.start();ambientSources.push(source);
+  });
+  bgmUnlocked=true;
+}
 function startBgm(){
   if(!soundOn||document.hidden)return;
-  bgm.volume=.32;
-  rail.volume=.13;
-  // Start both audio elements directly inside the same user gesture.
-  // Never gate rail playback on the BGM promise (mobile browser restriction).
-  const musicPlay=bgm.play();
-  const railPlay=rail.play();
-  if(musicPlay)musicPlay.then(()=>{bgmUnlocked=true}).catch(()=>{});
-  if(railPlay)railPlay.then(()=>{bgmUnlocked=true}).catch(()=>{});
+  try{
+    if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    audioCtx.resume().catch(()=>{});
+    if(ambientBuffers)beginAmbient();
+    else loadAmbient().then(()=>{if(audioCtx?.state==='running')beginAmbient()});
+  }catch(e){}
 }
-startBgm();
-function unlockSound(){if(soundOn&&(bgm.paused||rail.paused))startBgm()}
+function unlockSound(){if(soundOn&&!ambientSources.length)startBgm()}
 document.addEventListener('pointerdown',unlockSound,{passive:true});
 document.addEventListener('touchstart',unlockSound,{passive:true});
 document.addEventListener('keydown',unlockSound);
-function stopBgm(){bgm.pause();rail.pause()}
+function stopBgm(){clearAmbient();if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{})}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopBgm();else if(soundOn&&bgmUnlocked)startBgm()});
 window.addEventListener('pagehide',stopBgm);
 window.addEventListener('pageshow',()=>{if(soundOn&&bgmUnlocked)startBgm()});
