@@ -40,6 +40,10 @@ body{background:#1c1c26;color:#292633}
 
 /* Delete only the selected saved record */
 .records .record-delete{display:block;margin:10px 0 0 auto;padding:5px 12px;background:#d1b4a5;border:2px solid #292734;color:#292734;font:12px monospace;cursor:pointer}
+/* Requested: tarot card 10% smaller; result text slightly more compact */
+#result .deck.cardface{width:171px;height:293px;margin:14px auto 12px}
+#result .cardtitle{font-size:18px;line-height:1.35;margin:8px 0}
+#result #meaning{font-size:15px;line-height:1.45;margin:10px 0}
 </style></head><body><main class="app"><header class="top">✦ ༺ 마음 조각 분실물 센터 ༻ ✦<button id="sound" class="sound">♪</button></header>
 <section id="home"><div class="scene"></div><div class="panel"><h2>카드를 뒤집어 소유자를 확인하시겠어요?</h2><textarea id="question" rows="3" placeholder="질문은 적어도 되고, 비워도 괜찮아요."></textarea><div id="deck" class="deck">☾</div><button id="draw" class="btn">카드 열기</button></div></section>
 <section id="result" class="hidden"><div class="panel"><div class="deck cardface" id="face"><img id="cardimg" alt="뽑은 타로 카드"></div><h2 id="ct" class="cardtitle"></h2><div id="or" class="orient"></div><p id="meaning"></p><hr><p><b>이 카드를 보고 어떤 생각이 들었나요?</b></p><textarea id="reflection" rows="8" placeholder="마음에 떠오른 걸 자유롭게 적어주세요."></textarea><button id="save" class="btn">마음 찾아가기</button><button id="again" class="btn">한 장 더 뽑기</button></div></section>
