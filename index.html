@@ -36,7 +36,7 @@ body{background:#1c1c26;color:#292633}
 .popbox .paw-stamp{display:block;width:49px;height:49px;margin:2px auto 14px;transform:rotate(-9deg);opacity:.84;filter:contrast(.92)}
 </style></head><body><main class="app"><header class="top">✦ ༺ 마음 조각 분실물 센터 ༻ ✦<button id="sound" class="sound">♪</button></header>
 <section id="home"><div class="scene"></div><div class="panel"><h2>오늘, 무엇을 물어볼까요?</h2><textarea id="question" rows="3" placeholder="질문은 적어도 되고, 비워도 괜찮아요."></textarea><div id="deck" class="deck">☾</div><button id="draw" class="btn">카드 열기</button></div></section>
-<section id="result" class="hidden"><div class="panel"><div class="deck cardface" id="face"><img id="cardimg" alt="뽑은 타로 카드"></div><h2 id="ct" class="cardtitle"></h2><div id="or" class="orient"></div><p id="meaning"></p><hr><p><b>이 카드를 보고 어떤 생각이 들었나요?</b></p><textarea id="reflection" rows="8" placeholder="마음에 떠오른 걸 자유롭게 적어주세요."></textarea><button id="save" class="btn">마음 기록하기</button><button id="again" class="btn">한 장 더 뽑기</button></div></section>
+<section id="result" class="hidden"><div class="panel"><div class="deck cardface" id="face"><img id="cardimg" alt="뽑은 타로 카드"></div><h2 id="ct" class="cardtitle"></h2><div id="or" class="orient"></div><p id="meaning"></p><hr><p><b>이 카드를 보고 어떤 생각이 들었나요?</b></p><textarea id="reflection" rows="8" placeholder="마음에 떠오른 걸 자유롭게 적어주세요."></textarea><button id="save" class="btn">마음 찾아가기</button><button id="again" class="btn">한 장 더 뽑기</button></div></section>
 <section id="records" class="hidden records"><div class="panel"><h2>마음 기록</h2><div id="list"></div><hr><div class="backup"><button id="export" class="btn">기록 백업하기</button><button id="importBtn" class="btn">기록 불러오기</button><input id="importFile" class="file" type="file" accept="application/json"></div><p class="tiny">백업 파일에는 질문·카드·정/역방향·기록·날짜가 함께 저장돼요.</p></div></section>
 <nav class="nav"><button id="recordsNav">▣ 기록</button><button id="homeNav">⌂ 홈</button></nav></main>
 <audio id="bgm" src="bgm.wav" loop></audio><audio id="rail" src="rail-ambience.wav" loop preload="auto"></audio><audio id="click" src="click.wav"></audio><audio id="flip" src="flip.wav"></audio>
@@ -44,18 +44,26 @@ body{background:#1c1c26;color:#292633}
 let cards=[],current=null,soundOn=true,recentDraws=[];const $=s=>document.querySelector(s),bgm=$('#bgm'),rail=$('#rail'),click=$('#click'),flip=$('#flip');fetch('cards.json?v=20261012').then(r=>r.json()).then(x=>cards=x);if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
 function sfx(a){if(soundOn){a.currentTime=0;a.play().catch(()=>{})}}function clicky(){sfx(click)}document.addEventListener('pointerdown',e=>{if(e.target.closest('button')&&!e.target.matches('#draw'))clicky()});let bgmUnlocked=false;
 function startBgm(){
-  if(!soundOn)return;
-  bgm.volume=.34;
-  bgm.play().then(()=>{bgmUnlocked=true;rail.volume=.22;rail.play().catch(()=>{});}).catch(()=>{});
+  if(!soundOn||document.hidden)return;
+  bgm.volume=.32;
+  rail.volume=.72;
+  // Start both audio elements directly inside the same user gesture.
+  // Never gate rail playback on the BGM promise (mobile browser restriction).
+  const musicPlay=bgm.play();
+  const railPlay=rail.play();
+  if(musicPlay)musicPlay.then(()=>{bgmUnlocked=true}).catch(()=>{});
+  if(railPlay)railPlay.then(()=>{bgmUnlocked=true}).catch(()=>{});
 }
 startBgm();
-document.addEventListener('pointerdown',()=>{if(soundOn&&(bgm.paused||rail.paused))startBgm()});
-document.addEventListener('click',()=>{if(soundOn&&(bgm.paused||rail.paused))startBgm()});
-function stopBgm(){bgm.pause();rail.pause();}
-document.addEventListener('visibilitychange',()=>{if(document.hidden){stopBgm()}else if(soundOn&&bgmUnlocked){startBgm()}});
+function unlockSound(){if(soundOn&&(bgm.paused||rail.paused))startBgm()}
+document.addEventListener('pointerdown',unlockSound,{passive:true});
+document.addEventListener('touchstart',unlockSound,{passive:true});
+document.addEventListener('keydown',unlockSound);
+function stopBgm(){bgm.pause();rail.pause()}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopBgm();else if(soundOn&&bgmUnlocked)startBgm()});
 window.addEventListener('pagehide',stopBgm);
 window.addEventListener('pageshow',()=>{if(soundOn&&bgmUnlocked)startBgm()});
-$('#sound').onclick=()=>{soundOn=!soundOn;$('#sound').textContent=soundOn?'♪':'×';soundOn?startBgm():stopBgm()};
+$('#sound').onclick=()=>{soundOn=!soundOn;$('#sound').textContent=soundOn?'♪':'×';if(soundOn)startBgm();else stopBgm()};
 function cardCode(name){const major=['The Fool','The Magician','The High Priestess','The Empress','The Emperor','The Hierophant','The Lovers','The Chariot','Strength','The Hermit','Wheel of Fortune','Justice','The Hanged Man','Death','Temperance','The Devil','The Tower','The Star','The Moon','The Sun','Judgement','The World'];let i=major.indexOf(name);if(i>=0)return 'ar'+String(i).padStart(2,'0');const suits={Wands:'wa',Cups:'cu',Swords:'sw',Pentacles:'pe'};for(const [suit,prefix] of Object.entries(suits)){if(name.endsWith(' of '+suit)){const rank=name.slice(0,-(' of '+suit).length),ranks={Ace:1,Two:2,Three:3,Four:4,Five:5,Six:6,Seven:7,Eight:8,Nine:9,Ten:10,Page:11,Knight:12,Queen:13,King:14};return prefix+String(ranks[rank]).padStart(2,'0')}}return 'ar00'}
 function show(id){['home','result','records'].forEach(x=>$('#'+x).classList.toggle('hidden',x!==id));if(id==='records')render()}
 $('#draw').onclick=()=>{if(!cards.length)return;sfx(click);setTimeout(()=>sfx(flip),90);let pool=cards.filter(x=>!recentDraws.includes(x.en));if(!pool.length){recentDraws=[];pool=cards}let c=pool[Math.floor(Math.random()*pool.length)],rev=Math.random()<.5;recentDraws.push(c.en);if(recentDraws.length>8)recentDraws.shift();current={...c,rev,q:$('#question').value.trim()};$('#ct').textContent=c.en+' · '+c.ko;$('#or').textContent=rev?'역방향 REVERSED':'정방향 UPRIGHT';$('#meaning').textContent=(rev?c.r:c.u);const code=cardCode(c.en);const img=$('#cardimg');img.style.display='block';img.alt='';img.classList.toggle('reversed',rev);let sources=['https://raw.githubusercontent.com/sixseeds/tarot-api/main/cards/'+code+'.jpg','https://cdn.jsdelivr.net/gh/sixseeds/tarot-api@main/cards/'+code+'.jpg','https://petaloverflow.github.io/tarot-api/cards/'+code+'.jpg'];let si=0;img.onerror=()=>{si++;if(si<sources.length){img.src=sources[si]}else{img.onerror=null;img.style.display='none'}};img.src=sources[0];$('#face').style.transform='none';$('#reflection').value='';show('result')};
