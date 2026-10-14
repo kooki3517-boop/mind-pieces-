@@ -46,11 +46,11 @@ function sfx(a){if(soundOn){a.currentTime=0;a.play().catch(()=>{})}}function cli
 function startBgm(){
   if(!soundOn)return;
   bgm.volume=.34;
-  bgm.play().then(()=>{bgmUnlocked=true}).catch(()=>{});
+  bgm.play().then(()=>{bgmUnlocked=true;rail.volume=.22;rail.play().catch(()=>{});}).catch(()=>{});
 }
 startBgm();
-document.addEventListener('pointerdown',()=>{if(soundOn&&bgm.paused)startBgm()});
-document.addEventListener('click',()=>{if(soundOn&&bgm.paused)startBgm()});
+document.addEventListener('pointerdown',()=>{if(soundOn&&(bgm.paused||rail.paused))startBgm()});
+document.addEventListener('click',()=>{if(soundOn&&(bgm.paused||rail.paused))startBgm()});
 function stopBgm(){bgm.pause();rail.pause();}
 document.addEventListener('visibilitychange',()=>{if(document.hidden){stopBgm()}else if(soundOn&&bgmUnlocked){startBgm()}});
 window.addEventListener('pagehide',stopBgm);
