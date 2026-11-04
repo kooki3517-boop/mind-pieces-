@@ -52,6 +52,17 @@ body{background:#1c1c26;color:#292633}
 #home .panel{margin-top:12px}
 #home .panel h2{font-size:14px;line-height:1.65;font-weight:normal;margin:2px 0 14px}
 #home #question{min-height:85px;width:100%;display:block}
+
+/* Result screen: match the visual scale of the home screen (mobile only). */
+#result .panel{margin:12px 14px 16px;padding:14px 14px 16px;}
+#result .deck.cardface{width:138px;height:237px;margin:8px auto 12px;border-width:5px;box-shadow:4px 4px 0 var(--ink);}
+#result .cardtitle{font-size:16px;line-height:1.35;margin:8px 0 6px;overflow-wrap:anywhere;}
+#result .orient{font-size:12px;line-height:1.4;margin:5px 0 9px;}
+#result #meaning{font-size:14px;line-height:1.55;margin:10px 0 12px;word-break:keep-all;}
+#result .panel hr{margin:12px 0;}
+#result .panel p:has(> b){font-size:13px;line-height:1.5;margin:12px 0 9px;}
+#result #reflection{min-height:105px;height:112px;max-height:180px;font-size:13px;line-height:1.55;padding:10px;}
+#result .btn{margin-top:12px;}
 </style></head><body><main class="app"><header class="top"><button id="sound" class="sound">♪</button></header>
 <section id="home"><div class="scene"></div><div class="panel"><h2>어쩌면 이미 답은 정해져 있을지도 모릅니다.</h2><textarea id="question" rows="3" placeholder="궁금한 것을 적어도 되고, 비워도 괜찮아요."></textarea><div id="deck" class="deck">☾</div><button id="draw" class="btn">카드 열기</button></div></section>
 <section id="result" class="hidden"><div class="panel"><div class="deck cardface" id="face"><img id="cardimg" alt="뽑은 타로 카드"></div><h2 id="ct" class="cardtitle"></h2><div id="or" class="orient"></div><p id="meaning"></p><hr><p><b>이 카드를 보고 어떤 생각이 들었나요?</b></p><textarea id="reflection" rows="8" placeholder="마음에 떠오른 걸 자유롭게 적어주세요."></textarea><button id="save" class="btn">마음 찾아가기</button><button id="again" class="btn">한 장 더 뽑기</button></div></section>
