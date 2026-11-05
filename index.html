@@ -55,7 +55,7 @@ body{background:#1c1c26;color:#292633}
 
 /* Result screen: match the visual scale of the home screen (mobile only). */
 #result .panel{margin:12px 14px 16px;padding:12px 14px 14px;}
-#result .deck.cardface{width:112px;height:193px;margin:8px auto 12px;border-width:5px;box-shadow:4px 4px 0 var(--ink);}
+#result .deck.cardface{width:135px;height:233px;margin:8px auto 12px;border-width:5px;box-shadow:4px 4px 0 var(--ink);}
 #result .cardtitle{font-size:14px;line-height:1.35;margin:6px 0 5px;overflow-wrap:anywhere;}
 #result .orient{font-size:11px;line-height:1.4;margin:4px 0 7px;}
 #result #meaning{font-size:13px;line-height:1.5;margin:8px 0 10px;word-break:keep-all;}
@@ -65,12 +65,16 @@ body{background:#1c1c26;color:#292633}
 #result .btn{margin-top:12px;}
 
 /* Compact result actions: half the previous button width and visual height. */
-#result #save,#result #again{width:39%;min-width:0;padding:6px 3px;font-size:13px;line-height:1.35;margin:12px auto 0;border-width:3px;box-shadow:3px 3px 0 #292734;white-space:nowrap;}
+#result #save,#result #again{width:42.9%;min-width:0;padding:6px 3px;font-size:13px;line-height:1.35;margin:12px auto 0;border-width:3px;box-shadow:3px 3px 0 #292734;white-space:nowrap;}
 /* Brief, translucent, angular red check on successful record save. */
 .save-check-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:30;pointer-events:none;background:transparent;animation:save-check-fade 1.35s ease-in-out both;}
 .save-check-overlay svg{width:40vw;max-width:172px;height:auto;overflow:visible;filter:drop-shadow(3px 4px 0 rgba(42,30,42,.16));}
 @keyframes save-check-fade{0%{opacity:0;transform:scale(.93)}15%{opacity:1;transform:scale(1)}72%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.025)}}
 @media(prefers-reduced-motion:reduce){.save-check-overlay{animation:none;opacity:1}}
+
+/* Match the illustration background; compact sound toggle only. */
+.top{background:#2f2937}
+.sound{width:28px;height:28px;top:5px;right:11px;padding:0;display:flex;align-items:center;justify-content:center;font-size:14px;line-height:1;border-width:2px}
 </style></head><body><main class="app"><header class="top"><button id="sound" class="sound">♪</button></header>
 <section id="home"><div class="scene"></div><div class="panel"><h2>어쩌면 이미 답은 정해져 있을지도 모릅니다.</h2><textarea id="question" rows="3" placeholder="궁금한 것을 적어도 되고, 비워도 괜찮아요."></textarea><div id="deck" class="deck">☾</div><button id="draw" class="btn">카드 열기</button></div></section>
 <section id="result" class="hidden"><div class="panel"><div class="deck cardface" id="face"><img id="cardimg" alt="뽑은 타로 카드"></div><h2 id="ct" class="cardtitle"></h2><div id="or" class="orient"></div><p id="meaning"></p><hr><p><b>이 카드를 보고 어떤 생각이 들었나요?</b></p><textarea id="reflection" rows="8" placeholder="마음에 떠오른 걸 자유롭게 적어주세요."></textarea><button id="save" class="btn">기록하기</button><button id="again" class="btn">한 장 더 뽑기</button></div></section>
@@ -120,6 +124,8 @@ function startBgm(){
   }catch(e){}
 }
 function unlockSound(){if(soundOn&&!ambientSources.length)startBgm()}
+// Try immediately; browser autoplay policies may defer sound until a user gesture.
+window.addEventListener('DOMContentLoaded',startBgm,{once:true});
 document.addEventListener('pointerdown',unlockSound,{passive:true});
 document.addEventListener('touchstart',unlockSound,{passive:true});
 document.addEventListener('keydown',unlockSound);
