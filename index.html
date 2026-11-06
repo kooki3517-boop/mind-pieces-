@@ -83,6 +83,13 @@ body{background:#1c1c26;color:#292633}
 @keyframes save-check-write{to{stroke-dashoffset:0}}
 @keyframes save-check-ink-fade{0%{opacity:0}12%{opacity:1}73%{opacity:1}100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.save-check-overlay{animation:none;opacity:1}.save-check-overlay .ink-path{animation:none;stroke-dashoffset:0}}
+/* Compact music toggle: 30% smaller than previous 28px */
+.sound{width:20px!important;height:20px!important;top:7px!important;right:13px!important;padding:0!important;font-size:11px!important;border-width:2px!important;line-height:1!important}
+/* Faster hand-drawn check, with a short visible finish */
+.save-check-overlay{animation:save-check-ink-fade-fast 1.12s ease-in-out both!important}
+.save-check-overlay .ink-path{animation:save-check-write-fast .43s cubic-bezier(.38,.03,.6,1) .07s forwards!important}
+@keyframes save-check-write-fast{to{stroke-dashoffset:0}}
+@keyframes save-check-ink-fade-fast{0%{opacity:0}9%{opacity:1}68%{opacity:1}100%{opacity:0}}
 </style></head><body><main class="app"><header class="top"><button id="sound" class="sound">♪</button></header>
 <section id="home"><div class="scene"></div><div class="panel"><h2>어쩌면 이미 답은 정해져 있을지도 모릅니다.</h2><textarea id="question" rows="3" placeholder="궁금한 것을 적어도 되고, 비워도 괜찮아요."></textarea><div id="deck" class="deck">☾</div><button id="draw" class="btn">카드 열기</button></div></section>
 <section id="result" class="hidden"><div class="panel"><div class="deck cardface" id="face"><img id="cardimg" alt="뽑은 타로 카드"></div><h2 id="ct" class="cardtitle"></h2><div id="or" class="orient"></div><p id="meaning"></p><hr><p><b>이 카드를 보고 어떤 생각이 들었나요?</b></p><textarea id="reflection" rows="8" placeholder="마음에 떠오른 걸 자유롭게 적어주세요."></textarea><button id="save" class="btn">기록하기</button><button id="again" class="btn">한 장 더 뽑기</button></div></section>
@@ -126,17 +133,19 @@ function startBgm(){
   if(!soundOn||document.hidden)return;
   try{
     if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    audioCtx.resume().catch(()=>{});
-    if(ambientBuffers)beginAmbient();
-    else loadAmbient().then(()=>{if(audioCtx?.state==='running')beginAmbient()});
+    const resumeTask=audioCtx.resume();
+    if(ambientBuffers){resumeTask.then(beginAmbient).catch(()=>{});beginAmbient();}
+    else loadAmbient().then(()=>{if(!soundOn||document.hidden)return;audioCtx.resume().then(beginAmbient).catch(()=>{})});
   }catch(e){}
 }
 function unlockSound(){if(soundOn&&!ambientSources.length)startBgm()}
 // Try immediately; browser autoplay policies may defer sound until a user gesture.
 window.addEventListener('DOMContentLoaded',startBgm,{once:true});
+window.addEventListener('load',startBgm,{once:true});
 document.addEventListener('pointerdown',unlockSound,{passive:true});
 document.addEventListener('touchstart',unlockSound,{passive:true});
 document.addEventListener('keydown',unlockSound);
+document.addEventListener('click',unlockSound,{passive:true});
 function stopBgm(){clearAmbient();if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{})}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stopBgm();else if(soundOn&&bgmUnlocked)startBgm()});
 window.addEventListener('pagehide',stopBgm);
@@ -146,7 +155,7 @@ function cardCode(name){const major=['The Fool','The Magician','The High Prieste
 function show(id){['home','result','records'].forEach(x=>$('#'+x).classList.toggle('hidden',x!==id));if(id==='records')render()}
 function secureRandomInt(max){if(!Number.isSafeInteger(max)||max<1||max>4294967296)throw new RangeError('Invalid random range');const range=4294967296,limit=Math.floor(range/max)*max,buf=new Uint32Array(1);do{crypto.getRandomValues(buf)}while(buf[0]>=limit);return buf[0]%max}
 $('#draw').onclick=()=>{if(!cards.length)return;let choice=secureRandomInt(cards.length*2);let c=cards[Math.floor(choice/2)],rev=(choice%2===1);current={...c,rev,q:$('#question').value.trim()};$('#ct').textContent=c.en+' · '+c.ko;$('#or').textContent=rev?'역방향 REVERSED':'정방향 UPRIGHT';$('#meaning').textContent=(rev?c.r:c.u);const code=cardCode(c.en);const img=$('#cardimg');img.style.display='block';img.alt='';img.classList.toggle('reversed',rev);let sources=['https://raw.githubusercontent.com/sixseeds/tarot-api/main/cards/'+code+'.jpg','https://cdn.jsdelivr.net/gh/sixseeds/tarot-api@main/cards/'+code+'.jpg','https://petaloverflow.github.io/tarot-api/cards/'+code+'.jpg'];let si=0;img.onerror=()=>{si++;if(si<sources.length){img.src=sources[si]}else{img.onerror=null;img.style.display='none'}};img.src=sources[0];$('#face').style.transform='none';$('#reflection').value='';show('result')};
-$('#save').onclick=()=>{if(!current||document.querySelector('.save-check-overlay'))return;let arr=JSON.parse(localStorage.getItem('boriRecords')||'[]');arr.unshift({...current,text:$('#reflection').value,at:new Date().toISOString()});localStorage.setItem('boriRecords',JSON.stringify(arr));const overlay=document.createElement('div');overlay.className='save-check-overlay';overlay.setAttribute('role','status');overlay.setAttribute('aria-label','기록 완료');overlay.innerHTML='<svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="ink-path" d="M24 82 L63 119 L138 38" fill="none" stroke="rgba(166,46,51,.76)" stroke-width="17" stroke-linecap="square" stroke-linejoin="miter"/></svg>';document.body.append(overlay);if(soundOn){try{const pen=new Audio('pen-stroke.wav');pen.volume=.42;pen.play().catch(()=>{});}catch(e){}}setTimeout(()=>{overlay.remove();show('home')},1650)};
+$('#save').onclick=()=>{if(!current||document.querySelector('.save-check-overlay'))return;let arr=JSON.parse(localStorage.getItem('boriRecords')||'[]');arr.unshift({...current,text:$('#reflection').value,at:new Date().toISOString()});localStorage.setItem('boriRecords',JSON.stringify(arr));const overlay=document.createElement('div');overlay.className='save-check-overlay';overlay.setAttribute('role','status');overlay.setAttribute('aria-label','기록 완료');overlay.innerHTML='<svg viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path class="ink-path" d="M24 82 L63 119 L138 38" fill="none" stroke="rgba(166,46,51,.76)" stroke-width="17" stroke-linecap="square" stroke-linejoin="miter"/></svg>';document.body.append(overlay);if(soundOn){try{const pen=new Audio('pen-stroke.wav');pen.volume=.35;pen.play().catch(()=>{});}catch(e){}}setTimeout(()=>{overlay.remove();show('home')},1120)};
 $('#again').onclick=()=>show('home');$('#homeNav').onclick=()=>show('home');$('#recordsNav').onclick=()=>show('records');
 function render(){let a=JSON.parse(localStorage.getItem('boriRecords')||'[]'),l=$('#list');if(!a.length){l.innerHTML='<div class="empty">아직 보관된 마음이 없어요.</div>';return}l.innerHTML=a.map((x,i)=>{const original=cards.find(c=>String(c.en).trim().toLowerCase()===String(x.en||'').trim().toLowerCase()),meaning=(x.rev?(x.r||original?.r):(x.u||original?.u))||'';return `<div class="item"><b>${new Date(x.at).toLocaleString('ko-KR')}</b><br>${esc(String(x.en||''))} · ${esc(String(x.ko||''))} / ${x.rev?'역방향':'정방향'}${x.q?`<p>Q. ${esc(String(x.q))}</p>`:''}${meaning?`<p class="record-meaning"><b>카드 해석</b><span>${esc(String(meaning))}</span></p>`:''}${x.text?`<p>${esc(String(x.text))}</p>`:''}<button type="button" class="record-delete" data-index="${i}">삭제</button></div>`}).join('')}
 $('#list').addEventListener('click',e=>{const btn=e.target.closest('.record-delete');if(!btn)return;const index=Number(btn.dataset.index);if(!Number.isInteger(index)||!confirm('이 마음 기록을 삭제하시겠어요?'))return;const records=JSON.parse(localStorage.getItem('boriRecords')||'[]');if(index<0||index>=records.length)return;records.splice(index,1);localStorage.setItem('boriRecords',JSON.stringify(records));render()});
