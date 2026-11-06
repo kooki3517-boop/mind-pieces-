@@ -108,48 +108,40 @@ function clicky(){
   click.play().catch(()=>{});
 }
 document.addEventListener('click',e=>{if(e.target.closest('button'))clicky()});
-// Play ambient sound through Web Audio rather than HTML media elements.
-// This reduces media-session exposure on some Android browsers, but the OS can still show controls.
-let audioCtx=null, ambientBuffers=null, ambientSources=[], ambientLoading=null, bgmUnlocked=false;
-function loadAmbient(){
-  if(ambientLoading)return ambientLoading;
-  ambientLoading=Promise.all(['bgm.wav','rail-ambience.wav'].map(async url=>{
-    const r=await fetch(url);if(!r.ok)throw Error('audio fetch failed');
-    return audioCtx.decodeAudioData(await r.arrayBuffer());
-  })).then(b=>{ambientBuffers=b;return b}).catch(()=>{ambientLoading=null;return null});
-  return ambientLoading;
+// Preload both audio tracks and request playback synchronously on user gesture.
+// Browsers may reject unprompted autoplay, so the first touch is a fallback.
+const bgmTrack=new Audio('bgm.wav');
+const ambienceTrack=new Audio('rail-ambience.wav');
+for(const track of [bgmTrack,ambienceTrack]){
+  track.loop=true;
+  track.preload='auto';
+  track.playsInline=true;
+  track.load();
 }
-function clearAmbient(){for(const node of ambientSources){try{node.stop()}catch(e){}try{node.disconnect()}catch(e){}}ambientSources=[]}
-function beginAmbient(){
-  if(!ambientBuffers||!audioCtx||!soundOn||document.hidden||ambientSources.length)return;
-  ambientBuffers.forEach((buffer,i)=>{
-    const source=audioCtx.createBufferSource(),gain=audioCtx.createGain();
-    source.buffer=buffer;source.loop=true;gain.gain.value=i===0?.32:.13;
-    source.connect(gain);gain.connect(audioCtx.destination);source.start();ambientSources.push(source);
-  });
-  bgmUnlocked=true;
-}
+bgmTrack.volume=.32;
+ambienceTrack.volume=.13;
+let bgmStarted=false;
 function startBgm(){
   if(!soundOn||document.hidden)return;
-  try{
-    if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-    const resumeTask=audioCtx.resume();
-    if(ambientBuffers){resumeTask.then(beginAmbient).catch(()=>{});beginAmbient();}
-    else loadAmbient().then(()=>{if(!soundOn||document.hidden)return;audioCtx.resume().then(beginAmbient).catch(()=>{})});
-  }catch(e){}
+  // play() is invoked immediately, not after fetch/decode or a promise callback.
+  for(const track of [bgmTrack,ambienceTrack]){
+    if(track.paused){
+      const attempt=track.play();
+      if(attempt&&attempt.then)attempt.then(()=>{bgmStarted=true}).catch(()=>{});
+    }
+  }
 }
-function unlockSound(){if(soundOn&&!ambientSources.length)startBgm()}
-// Try immediately; browser autoplay policies may defer sound until a user gesture.
+function stopBgm(){for(const track of [bgmTrack,ambienceTrack])track.pause()}
+function unlockSound(){if(soundOn)startBgm()}
 window.addEventListener('DOMContentLoaded',startBgm,{once:true});
 window.addEventListener('load',startBgm,{once:true});
-document.addEventListener('pointerdown',unlockSound,{passive:true});
-document.addEventListener('touchstart',unlockSound,{passive:true});
-document.addEventListener('keydown',unlockSound);
-document.addEventListener('click',unlockSound,{passive:true});
-function stopBgm(){clearAmbient();if(audioCtx&&audioCtx.state==='running')audioCtx.suspend().catch(()=>{})}
-document.addEventListener('visibilitychange',()=>{if(document.hidden)stopBgm();else if(soundOn&&bgmUnlocked)startBgm()});
+// Capture phase lets this run even when buttons/fields handle their own clicks.
+for(const type of ['pointerdown','touchstart','click','keydown']){
+  document.addEventListener(type,unlockSound,{capture:true,passive:true});
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stopBgm();else if(soundOn)startBgm()});
 window.addEventListener('pagehide',stopBgm);
-window.addEventListener('pageshow',()=>{if(soundOn&&bgmUnlocked)startBgm()});
+window.addEventListener('pageshow',()=>{if(soundOn)startBgm()});
 $('#sound').onclick=()=>{soundOn=!soundOn;$('#sound').textContent=soundOn?'♪':'×';if(soundOn)startBgm();else stopBgm()};
 function cardCode(name){const major=['The Fool','The Magician','The High Priestess','The Empress','The Emperor','The Hierophant','The Lovers','The Chariot','Strength','The Hermit','Wheel of Fortune','Justice','The Hanged Man','Death','Temperance','The Devil','The Tower','The Star','The Moon','The Sun','Judgement','The World'];let i=major.indexOf(name);if(i>=0)return 'ar'+String(i).padStart(2,'0');const suits={Wands:'wa',Cups:'cu',Swords:'sw',Pentacles:'pe'};for(const [suit,prefix] of Object.entries(suits)){if(name.endsWith(' of '+suit)){const rank=name.slice(0,-(' of '+suit).length),ranks={Ace:1,Two:2,Three:3,Four:4,Five:5,Six:6,Seven:7,Eight:8,Nine:9,Ten:10,Page:11,Knight:12,Queen:13,King:14};return prefix+String(ranks[rank]).padStart(2,'0')}}return 'ar00'}
 function show(id){['home','result','records'].forEach(x=>$('#'+x).classList.toggle('hidden',x!==id));if(id==='records')render()}
